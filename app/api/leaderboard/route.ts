@@ -14,7 +14,7 @@ export async function GET() {
   const matches = await fetchMatches();
 
   // ---------------- GROUPS ----------------
-  const groups = buildGroups(matches, participants);
+  const groups = buildGroups(matches);
 
   // ---------------- KNOCKOUT ----------------
   const knockout = buildKnockout(matches, participants);
