@@ -2,36 +2,25 @@
 
 import { useEffect, useState } from "react";
 
-type NextMatch = {
-  matchText: string;
-  kickoff: string;
-};
-
-type Player = {
-  name: string;
-  topTeam: string;
-  bottomTeam: string;
-  topScore: number;
-  bottomScore: number;
-  nextTopMatch: NextMatch | null;
-  nextBottomMatch: NextMatch | null;
-  topAlive: boolean;
-  bottomAlive: boolean;
-};
-
-type Data = {
-  topBracket: Player[];
-  bottomBracket: Player[];
-};
-
 export default function Home() {
-  const [data, setData] = useState<Data | null>(null);
+  const [data, setData] = useState<any>(null);
+  const [tab, setTab] = useState("groups");
 
   async function load() {
     const res = await fetch("/api/leaderboard", {
       cache: "no-store",
     });
-    setData(await res.json());
+
+    if (!res.ok) return;
+
+    const text = await res.text();
+    if (!text) return;
+
+    try {
+      setData(JSON.parse(text));
+    } catch (e) {
+      console.error("Invalid JSON from API", e);
+    }
   }
 
   useEffect(() => {
@@ -42,139 +31,183 @@ export default function Home() {
 
   if (!data) {
     return (
-      <div className="p-6 text-gray-200 bg-gray-900 min-h-screen">
+      <div className="p-6 bg-gray-950 text-gray-200 min-h-screen">
         Loading...
       </div>
     );
   }
 
   return (
-    <div className="p-6 grid md:grid-cols-2 gap-8 bg-gray-900 min-h-screen">
-      {/* TOP BRACKET */}
-      <div>
-        <h1 className="text-xl font-bold mb-4 text-white">
-          Top Bracket
-        </h1>
-
-        {data.topBracket.map((p) => (
-          <div
-            key={p.name}
-            className={`p-4 rounded mb-4 border bg-white shadow-sm ${
-              p.topAlive
-                ? "border-green-500"
-                : "border-red-500"
+    <div className="p-6 bg-gray-950 text-gray-100 min-h-screen">
+      {/* ================= TABS ================= */}
+      <div className="flex gap-3 mb-6 flex-wrap">
+        {["groups", "knockout", "scored", "conceded"].map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-3 py-1 rounded text-sm ${
+              tab === t
+                ? "bg-white text-black"
+                : "bg-gray-800 text-gray-200 hover:bg-gray-700"
             }`}
           >
-            <div className="text-lg font-semibold text-gray-900">
-              {p.name}
-            </div>
-
-            <div className="text-sm text-gray-600">
-              {p.topTeam}
-            </div>
-
-            <div className="mt-1 text-gray-800">
-              Score: {p.topScore}
-            </div>
-
-            <div className="mt-2 text-sm">
-              <span
-                className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                  p.topAlive
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {p.topAlive ? "In tournament" : "Eliminated"}
-              </span>
-
-              <div className="mt-2 text-gray-700">
-                <div className="font-semibold text-gray-900">
-                  Next match
-                </div>
-
-                {p.nextTopMatch ? (
-                  <>
-                    <div>{p.nextTopMatch.matchText}</div>
-                    <div className="text-gray-500">
-                      {new Date(
-                        p.nextTopMatch.kickoff
-                      ).toLocaleString()}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-gray-500">
-                    No upcoming match
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+            {t.toUpperCase()}
+          </button>
         ))}
       </div>
 
-      {/* BOTTOM BRACKET */}
-      <div>
-        <h1 className="text-xl font-bold mb-4 text-white">
-          Bottom Bracket
-        </h1>
+      {/* ================= GROUPS ================= */}
+      {tab === "groups" && (
+        <div className="space-y-6">
+          {Object.entries(data.groups).map(([group, teams]: any) => (
+            <div key={group}>
+              <h2 className="font-bold text-lg mb-2">{group}</h2>
 
-        {data.bottomBracket.map((p) => (
-          <div
-            key={p.name}
-            className={`p-4 rounded mb-4 border bg-white shadow-sm ${
-              p.bottomAlive
-                ? "border-green-500"
-                : "border-red-500"
-            }`}
-          >
-            <div className="text-lg font-semibold text-gray-900">
-              {p.name}
+              <table className="w-full text-sm bg-gray-900 rounded table-fixed">
+                <thead className="text-gray-300 border-b border-gray-700">
+                  <tr>
+                    <th className="p-2 text-left w-1/3">Team</th>
+                    <th className="p-2 text-left w-1/3">Player</th>
+                    <th className="p-2 w-12">P</th>
+                    <th className="p-2 w-12">Pts</th>
+                    <th className="p-2 w-12">GF</th>
+                    <th className="p-2 w-12">GA</th>
+                    <th className="p-2 w-12">GD</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {teams.map((t: any, i: number) => (
+                    <tr
+                      key={`${t.team ?? "team"}-${t.participant ?? "player"}-${i}`}
+                      className="border-t border-gray-800 hover:bg-gray-800"
+                    >
+                      <td className="p-2 truncate">{t.team ?? "-"}</td>
+
+                      <td className="p-2 text-gray-300 truncate">
+                        {t.participant ?? ""}
+                      </td>
+
+                      <td className="p-2 text-center">{t.played ?? 0}</td>
+                      <td className="p-2 text-center font-semibold">
+                        {t.points ?? 0}
+                      </td>
+                      <td className="p-2 text-center">{t.goalsFor ?? 0}</td>
+                      <td className="p-2 text-center">
+                        {t.goalsAgainst ?? 0}
+                      </td>
+                      <td className="p-2 text-center">
+                        {(t.goalsFor ?? 0) - (t.goalsAgainst ?? 0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+          ))}
+        </div>
+      )}
 
-            <div className="text-sm text-gray-600">
-              {p.bottomTeam}
-            </div>
+      {/* ================= KNOCKOUT ================= */}
+      {tab === "knockout" && (
+        <div className="space-y-6">
+          {data.knockout?.stages?.map((s: any, si: number) => (
+            <div key={`${s.stage}-${si}`}>
+              <h2 className="font-bold mb-2">{s.stage}</h2>
 
-            <div className="mt-1 text-gray-800">
-              Goals conceded: {p.bottomScore}
-            </div>
-
-            <div className="mt-2 text-sm">
-              <span
-                className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                  p.bottomAlive
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {p.bottomAlive ? "In tournament" : "Eliminated"}
-              </span>
-
-              <div className="mt-2 text-gray-700">
-                <div className="font-semibold text-gray-900">
-                  Next match
+              {s.matches?.map((m: any, i: number) => (
+                <div
+                  key={`${m.home ?? "h"}-${m.away ?? "a"}-${i}`}
+                  className="bg-gray-900 border border-gray-800 p-3 mb-2 rounded"
+                >
+                  {m.home ?? "TBD"} ({m.homeOwner ?? "-"}) vs{" "}
+                  {m.away ?? "TBD"} ({m.awayOwner ?? "-"})
                 </div>
-
-                {p.nextBottomMatch ? (
-                  <>
-                    <div>{p.nextBottomMatch.matchText}</div>
-                    <div className="text-gray-500">
-                      {new Date(
-                        p.nextBottomMatch.kickoff
-                      ).toLocaleString()}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-gray-500">
-                    No upcoming match
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {/* ================= SCORED ================= */}
+      {tab === "scored" && (
+        <div>
+          <h2 className="text-sm text-gray-300 mb-4">
+            This table shows the teams from Pot 3 and Pot 4 that have scored the most goals so far.
+          </h2>
+
+          <table className="w-full text-sm bg-gray-900 rounded table-fixed">
+            <thead className="text-gray-300 border-b border-gray-700">
+              <tr>
+                <th className="p-2 w-12">Rank</th>
+                <th className="p-2 text-left w-1/3">Team</th>
+                <th className="p-2 text-left w-1/3">Player</th>
+                <th className="p-2 w-20">Goals</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {data.goalsScoredRanking?.map((t: any, i: number) => (
+                <tr
+                  key={`${t.team ?? "team"}-${i}`}
+                  className={`border-t border-gray-800 hover:bg-gray-800 ${
+                    t.eliminated ? "text-red-400" : ""
+                  }`}
+                >
+                  <td className="p-2 text-center">{i + 1}</td>
+                  <td className="p-2 truncate">{t.team ?? "-"}</td>
+                  <td className="p-2 text-gray-300 truncate">
+                    {t.participant ?? "-"}
+                  </td>
+                  <td className="p-2 text-center font-semibold">
+                    {t.goalsFor ?? 0}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ================= CONCEDED ================= */}
+      {tab === "conceded" && (
+        <div>
+          <h2 className="text-sm text-gray-300 mb-4">
+            This table shows the teams from Pot 3 and Pot 4 that have conceded the most goals so far.
+          </h2>
+
+          <table className="w-full text-sm bg-gray-900 rounded table-fixed">
+            <thead className="text-gray-300 border-b border-gray-700">
+              <tr>
+                <th className="p-2 w-12">Rank</th>
+                <th className="p-2 text-left w-1/3">Team</th>
+                <th className="p-2 text-left w-1/3">Player</th>
+                <th className="p-2 w-20">Conceded</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {data.goalsConcededRanking?.map((t: any, i: number) => (
+                <tr
+                  key={`${t.team ?? "team"}-${i}`}
+                  className={`border-t border-gray-800 hover:bg-gray-800 ${
+                    t.eliminated ? "text-red-400" : ""
+                  }`}
+                >
+                  <td className="p-2 text-center">{i + 1}</td>
+                  <td className="p-2 truncate">{t.team ?? "-"}</td>
+                  <td className="p-2 text-gray-300 truncate">
+                    {t.participant ?? "-"}
+                  </td>
+                  <td className="p-2 text-center font-semibold">
+                    {t.goalsAgainst ?? 0}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

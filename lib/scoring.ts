@@ -46,3 +46,20 @@ export function getGoalsConceded(team: string, matches: any[]) {
 
   return conceded;
 }
+
+export function getGoalsScored(team: string, matches: any[]) {
+  let goals = 0;
+
+  for (const m of matches) {
+    const home = m.homeTeam.name;
+    const away = m.awayTeam.name;
+
+    const hg = m.score.fullTime.home;
+    const ag = m.score.fullTime.away;
+
+    if (home === team) goals += hg;
+    if (away === team) goals += ag;
+  }
+
+  return goals;
+}

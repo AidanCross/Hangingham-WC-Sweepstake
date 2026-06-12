@@ -1,38 +1,49 @@
 import participants from "@/data/participants.json";
 import { fetchMatches } from "@/lib/api";
+import { buildGroups } from "@/lib/groups";
+import { buildKnockout, getFurthestStage } from "@/lib/knockout";
 import {
-  getTeamProgressPoints,
   getGoalsConceded,
+  getGoalsScored,
+  getTeamProgressPoints,
 } from "@/lib/scoring";
 import { getNextMatch } from "@/lib/nextMatch";
 import { getTeamStatus } from "@/lib/teamStatus";
+
 export async function GET() {
   const matches = await fetchMatches();
 
-  const results = participants.map((p) => {
-  const topStatus = getTeamStatus(p.topTeam, matches);
-  const bottomStatus = getTeamStatus(p.bottomTeam, matches);
+  // ---------------- GROUPS ----------------
+  const groups = buildGroups(matches, participants);
+
+  // ---------------- KNOCKOUT ----------------
+  const knockout = buildKnockout(matches, participants);
+
+  // ---------------- POT 3/4 (BOTTOM TEAMS) ----------------
+const bottomTeams = participants.map((p) => {
+  const status = getTeamStatus(p.bottomTeam, matches);
 
   return {
-    name: p.name,
-    topTeam: p.topTeam,
-    bottomTeam: p.bottomTeam,
-
-    topScore: getTeamProgressPoints(p.topTeam, matches),
-    bottomScore: getGoalsConceded(p.bottomTeam, matches),
-
-    nextTopMatch: getNextMatch(p.topTeam, matches),
-    nextBottomMatch: getNextMatch(p.bottomTeam, matches),
-
-    topAlive: topStatus.isAlive,
-    bottomAlive: bottomStatus.isAlive,
+    team: p.bottomTeam,
+    participant: p.name,
+    goalsFor: getGoalsScored(p.bottomTeam, matches),
+    goalsAgainst: getGoalsConceded(p.bottomTeam, matches),
+    eliminated: !status.isAlive,
   };
 });
 
+  const goalsScoredRanking = [...bottomTeams].sort(
+    (a, b) => b.goalsFor - a.goalsFor
+  );
+
+  const goalsConcededRanking = [...bottomTeams].sort(
+    (a, b) => b.goalsAgainst - a.goalsAgainst
+  );
+
   return Response.json({
-    topBracket: [...results].sort((a, b) => b.topScore - a.topScore),
-    bottomBracket: [...results].sort(
-      (a, b) => b.bottomScore - a.bottomScore
-    ),
+    groups,
+    knockout,
+    goalsScoredRanking,
+    goalsConcededRanking,
   });
 }
