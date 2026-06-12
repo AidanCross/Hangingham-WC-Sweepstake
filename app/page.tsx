@@ -59,7 +59,9 @@ export default function Home() {
       {/* ================= GROUPS ================= */}
       {tab === "groups" && (
         <div className="space-y-6">
-          {Object.entries(data.groups).map(([group, teams]: any) => (
+          {Object.entries(data.groups)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([group, teams]: any) => (
             <div key={group}>
               <h2 className="font-bold text-lg mb-2">{group}</h2>
 
