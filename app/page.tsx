@@ -41,17 +41,23 @@ export default function Home() {
     <div className="p-6 bg-gray-950 text-gray-100 min-h-screen">
       {/* ================= TABS ================= */}
       <div className="flex gap-3 mb-6 flex-wrap">
-        {["groups", "knockout", "scored", "conceded"].map((t) => (
+        {[
+          { id: "groups", label: "GROUPS" },
+          { id: "knockout", label: "KNOCKOUT" },
+          { id: "topscorers", label: "POT 1&2 SCORED" },
+          { id: "scored", label: "POT 3&4 SCORED" },
+          { id: "conceded", label: "CONCEDED" },
+        ].map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={t.id}
+            onClick={() => setTab(t.id)}
             className={`px-3 py-1 rounded text-sm ${
-              tab === t
+              tab === t.id
                 ? "bg-white text-black"
                 : "bg-gray-800 text-gray-200 hover:bg-gray-700"
             }`}
           >
-            {t.toUpperCase()}
+            {t.label}
           </button>
         ))}
       </div>
@@ -210,6 +216,51 @@ export default function Home() {
           </table>
         </div>
       )}
+      {/* ================= TOP TEAM GOALSCORERS ================= */}
+{tab === "topscorers" && (
+  <div>
+    <h2 className="text-sm text-gray-300 mb-4">
+      This table shows the top-bracket teams ranked by goals scored so far.
+    </h2>
+
+    <table className="w-full text-sm bg-gray-900 rounded table-fixed">
+      <thead className="text-gray-300 border-b border-gray-700">
+        <tr>
+          <th className="p-2 w-12">Rank</th>
+          <th className="p-2 text-left w-1/3">Team</th>
+          <th className="p-2 text-left w-1/3">Player</th>
+          <th className="p-2 w-20">Goals</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {data.topTeamsGoalsRanking?.map((t: any, i: number) => (
+          <tr
+            key={`${t.team ?? "team"}-${i}`}
+            className={`border-t border-gray-800 hover:bg-gray-800 ${
+              t.eliminated ? "text-red-400" : ""
+            }`}
+          >
+            <td className="p-2 text-center">{i + 1}</td>
+
+            <td className="p-2 truncate">
+              {t.team ?? "-"}
+            </td>
+
+            <td className="p-2 text-gray-300 truncate">
+              {t.participant ?? "-"}
+            </td>
+
+            <td className="p-2 text-center font-semibold">
+              {t.goalsFor ?? 0}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
     </div>
+    
   );
 }
