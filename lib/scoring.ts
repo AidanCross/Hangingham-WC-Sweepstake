@@ -1,3 +1,22 @@
+function getMatchGoals(m: any) {
+  const isPens = m.score?.duration === "PENALTY_SHOOTOUT";
+
+  if (isPens) {
+    const regular = m.score?.regularTime;
+    const extra = m.score?.extraTime;
+
+    return {
+      home: (regular?.home ?? 0) + (extra?.home ?? 0),
+      away: (regular?.away ?? 0) + (extra?.away ?? 0),
+    };
+  }
+
+  return {
+    home: m.score?.fullTime?.home ?? 0,
+    away: m.score?.fullTime?.away ?? 0,
+  };
+}
+
 export function getTeamProgressPoints(team: string, matches: any[]) {
   let points = 0;
 
@@ -37,11 +56,10 @@ export function getGoalsConceded(team: string, matches: any[]) {
     const home = m.homeTeam?.name;
     const away = m.awayTeam?.name;
 
-    const homeGoals = m.score?.fullTime?.home ?? 0;
-    const awayGoals = m.score?.fullTime?.away ?? 0;
+    const { home: hg, away: ag } = getMatchGoals(m);
 
-    if (home === team) conceded += awayGoals;
-    if (away === team) conceded += homeGoals;
+    if (home === team) conceded += ag;
+    if (away === team) conceded += hg;
   }
 
   return conceded;
@@ -51,11 +69,10 @@ export function getGoalsScored(team: string, matches: any[]) {
   let goals = 0;
 
   for (const m of matches) {
-    const home = m.homeTeam.name;
-    const away = m.awayTeam.name;
+    const home = m.homeTeam?.name;
+    const away = m.awayTeam?.name;
 
-    const hg = m.score.fullTime.home;
-    const ag = m.score.fullTime.away;
+    const { home: hg, away: ag } = getMatchGoals(m);
 
     if (home === team) goals += hg;
     if (away === team) goals += ag;
